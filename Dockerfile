@@ -26,7 +26,7 @@ LABEL org.opencontainers.image.description="Atlas GPU Worker - OpenClaw inferenc
 
 # Install runtime deps + Node.js LTS
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl wget ca-certificates libcurl4 jq \
+    curl wget ca-certificates libcurl4 jq git \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
