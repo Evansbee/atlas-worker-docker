@@ -24,11 +24,11 @@ FROM nvidia/cuda:12.4.0-runtime-ubuntu22.04
 LABEL org.opencontainers.image.source="https://github.com/evansbee/atlas-worker-docker"
 LABEL org.opencontainers.image.description="Atlas GPU Worker - OpenClaw inference node"
 
-# Install runtime deps + Node.js LTS
+# Install runtime deps + Node.js 22 (latest)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl wget ca-certificates libcurl4 jq git \
-    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-    && apt-get install -y --no-install-recommends nodejs \
+    curl wget ca-certificates libcurl4 jq git xz-utils \
+    && NODE_VERSION=$(curl -fsSL https://nodejs.org/dist/index.json | jq -r '[.[] | select(.version | startswith("v22")) | select(.lts != false)][0].version') \
+    && curl -fsSL "https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-linux-x64.tar.xz" | tar -xJ -C /usr/local --strip-components=1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install OpenClaw
