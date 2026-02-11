@@ -1,0 +1,17 @@
+services:
+  atlas-worker:
+    image: ghcr.io/evansbee/atlas-worker:latest
+    build: .
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - ATLAS_GATEWAY_HOST=atlas
+      - ATLAS_GATEWAY_PORT=18789
+      - WORKER_NAME=GPU Worker
+    volumes:
+      - atlas-worker-data:/data
+    restart: unless-stopped
+    network_mode: host
+
+volumes:
+  atlas-worker-data:
