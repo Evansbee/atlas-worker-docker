@@ -1,6 +1,6 @@
 services:
   atlas-worker:
-    image: ghcr.io/evansbee/atlas-worker-docker:latest
+    build: .
     container_name: atlas-worker
     network_mode: host
     environment:
