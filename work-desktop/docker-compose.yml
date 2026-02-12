@@ -1,0 +1,23 @@
+services:
+  atlas-worker:
+    build: .
+    container_name: atlas-worker
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - models:/models
+      - openclaw-config:/root/.openclaw
+    ports:
+      - "8081:8081"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+
+volumes:
+  models:
+  openclaw-config:
