@@ -7,6 +7,7 @@ services:
       - ATLAS_GATEWAY_HOST=atlas
       - ATLAS_GATEWAY_PORT=18789
       - WORKER_NAME=${WORKER_NAME:-GPU Worker}
+      - ATLAS_GATEWAY_TOKEN=${ATLAS_GATEWAY_TOKEN}
     volumes:
       - atlas-data:/data
     restart: unless-stopped
