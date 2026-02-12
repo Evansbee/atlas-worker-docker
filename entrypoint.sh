@@ -11,13 +11,13 @@ echo "============================================"
 export OPENCLAW_STATE_DIR=/data/config
 export OPENCLAW_GATEWAY_TOKEN="${ATLAS_GATEWAY_TOKEN:-}"
 
-# Set exec approvals to allow all commands in ALL possible locations
+# Set exec approvals to allow all commands
 mkdir -p /data/config /root/.openclaw
 
 APPROVALS_JSON='{
   "version": 1,
   "defaults": {
-    "mode": "full"
+    "security": "full"
   },
   "agents": {}
 }'
