@@ -1,11 +1,14 @@
 services:
   atlas-worker:
-    build: .
+    build: 
+      context: .
+      args:
+        GPU_BACKEND: ${GPU_BACKEND:-cuda}
     container_name: atlas-worker
     restart: unless-stopped
     network_mode: host
     
-    # GPU support
+    # GPU support (NVIDIA/CUDA only - remove this block for Apple Silicon/Metal)
     deploy:
       resources:
         reservations:
@@ -29,6 +32,7 @@ services:
       - LLAMA_GPU_LAYERS=${LLAMA_GPU_LAYERS:-99}
       - LLAMA_CTX_SIZE=${LLAMA_CTX_SIZE:-8192}
       - LLAMA_PORT=${LLAMA_PORT:-8080}
+      - GPU_BACKEND=${GPU_BACKEND:-cuda}
 
 volumes:
   models:

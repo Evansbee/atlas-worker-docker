@@ -1,4 +1,10 @@
-FROM nvidia/cuda:12.4.0-runtime-ubuntu22.04
+ARG GPU_BACKEND=cuda
+
+# Use CUDA base for NVIDIA, regular Ubuntu for Metal
+FROM nvidia/cuda:12.4.0-runtime-ubuntu22.04 AS cuda-base
+FROM ubuntu:22.04 AS metal-base
+
+FROM ${GPU_BACKEND}-base
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -17,13 +23,20 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 # Install OpenClaw globally
 RUN npm install -g openclaw
 
-# Build llama.cpp from source with CUDA support
+# Build llama.cpp from source with GPU support
+ARG GPU_BACKEND=cuda
 WORKDIR /tmp
 RUN git clone https://github.com/ggerganov/llama.cpp.git \
     && cd llama.cpp \
     && mkdir build \
     && cd build \
-    && cmake .. -DGGML_CUDA=ON \
+    && if [ "$GPU_BACKEND" = "cuda" ]; then \
+        cmake .. -DGGML_CUDA=ON; \
+    elif [ "$GPU_BACKEND" = "metal" ]; then \
+        cmake .. -DGGML_METAL=ON; \
+    else \
+        cmake ..; \
+    fi \
     && make -j$(nproc) \
     && cp bin/* /usr/local/bin/ \
     && cd / \

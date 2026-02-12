@@ -1,29 +1,54 @@
 # Atlas Worker Docker
 
-A lean, simple Docker setup for running OpenClaw node host with llama.cpp server in a single container.
+A lean, simple Docker setup for running OpenClaw node host with llama.cpp server in a single container. **Supports NVIDIA CUDA, Apple Silicon Metal, and CPU-only modes.**
 
 ## Quick Start
 
+**Auto-detected setup (recommended):**
 ```bash
 git clone <this-repo>
 cd atlas-worker-docker
-docker compose build
-docker compose up -d
+./setup.sh
+```
+
+**Manual setup:**
+```bash
+# NVIDIA CUDA (Linux/WSL with GPU)
+docker compose build && docker compose up -d
+
+# Apple Silicon Metal (macOS)
+docker compose -f docker-compose.yml -f docker-compose.metal.yml build
+docker compose -f docker-compose.yml -f docker-compose.metal.yml up -d
+
+# CPU-only (any platform)
+GPU_BACKEND=cpu docker compose build && docker compose up -d
 ```
 
 ## Prerequisites
 
+### All Platforms
 - **Docker** with compose plugin
-- **NVIDIA drivers** (for GPU support)
-- **NVIDIA Container Toolkit** ([installation guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html))
 - **Tailscale** running on host (container uses `network_mode: host`)
+
+### NVIDIA CUDA (Linux/WSL)
+- **NVIDIA drivers** (470+ recommended)
+- **NVIDIA Container Toolkit** ([installation guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html))
+
+### Apple Silicon (macOS)
+- **Docker Desktop for Mac** with Apple Silicon support
+- No additional GPU drivers needed (Metal is built-in)
+
+### CPU-only
+- Just Docker - works on any platform without GPU acceleration
 
 ## Architecture
 
 - **Single container** with OpenClaw node host + llama.cpp server
-- **Persistent volumes** for models and OpenClaw config
+- **Multi-platform support**: NVIDIA CUDA, Apple Silicon Metal, CPU-only
+- **Persistent volumes** for models and OpenClaw config  
 - **Host networking** to use host's Tailscale connection
-- **GPU acceleration** via CUDA
+- **GPU acceleration** via CUDA (Linux/Windows) or Metal (macOS)
+- **Auto-detection** of optimal build configuration
 
 ## Environment Variables
 
@@ -34,7 +59,8 @@ docker compose up -d
 | `WORKER_NAME` | `atlas-worker-<hostname>` | Worker identification name |
 | `ATLAS_GATEWAY_TOKEN` | _(empty)_ | Authentication token for gateway |
 | `MODEL_NAME` | _(empty)_ | Specific model filename to use |
-| `LLAMA_GPU_LAYERS` | `99` | GPU layers for offloading |
+| `GPU_BACKEND` | `cuda` | GPU backend: `cuda`, `metal`, or `cpu` |
+| `LLAMA_GPU_LAYERS` | `99` | GPU layers for offloading (ignored for CPU) |
 | `LLAMA_CTX_SIZE` | `8192` | Context window size |
 | `LLAMA_PORT` | `8080` | llama-server port |
 
@@ -45,6 +71,36 @@ ATLAS_GATEWAY_HOST=your-gateway-host
 ATLAS_GATEWAY_TOKEN=your-token
 WORKER_NAME=my-worker
 MODEL_NAME=Qwen3-30B-A3B-Q4_K_M.gguf
+GPU_BACKEND=cuda  # cuda, metal, or cpu
+```
+
+## Platform-Specific Usage
+
+### NVIDIA CUDA (Linux/WSL)
+```bash
+# Auto-setup
+./setup.sh
+
+# Manual
+docker compose up -d
+```
+
+### Apple Silicon (macOS) 
+```bash
+# Auto-setup
+./setup.sh
+
+# Manual 
+docker compose -f docker-compose.yml -f docker-compose.metal.yml up -d
+```
+
+### CPU-only (any platform)
+```bash
+# Auto-setup
+./setup.sh --force-cpu
+
+# Manual
+GPU_BACKEND=cpu docker compose up -d
 ```
 
 ## Downloading Models
@@ -76,9 +132,25 @@ docker compose ps                    # Check status
 ```
 
 ### GPU Issues
+
+**NVIDIA CUDA:**
 ```bash
 nvidia-smi                          # Check GPU availability
 docker run --rm --gpus all nvidia/cuda:12.4.0-runtime-ubuntu22.04 nvidia-smi
+```
+
+**Apple Silicon Metal:**
+```bash
+# Check Metal support (should show GPU info)
+system_profiler SPDisplaysDataType | grep "Metal"
+
+# Force CPU build if Metal issues
+./setup.sh --force-cpu
+```
+
+**Platform Detection:**
+```bash
+./setup.sh --help                  # Show available options
 ```
 
 ### Network Connectivity

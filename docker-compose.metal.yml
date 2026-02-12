@@ -1,0 +1,23 @@
+# Override file for Apple Silicon/Metal support
+# Usage: docker compose -f docker-compose.yml -f docker-compose.metal.yml up -d
+
+services:
+  atlas-worker:
+    build:
+      context: .
+      args:
+        GPU_BACKEND: metal
+    
+    # Remove NVIDIA GPU reservations for Metal
+    deploy: {}
+    
+    environment:
+      - ATLAS_GATEWAY_HOST=${ATLAS_GATEWAY_HOST:-atlas}
+      - ATLAS_GATEWAY_PORT=${ATLAS_GATEWAY_PORT:-18789}
+      - WORKER_NAME=${WORKER_NAME:-}
+      - ATLAS_GATEWAY_TOKEN=${ATLAS_GATEWAY_TOKEN:-}
+      - MODEL_NAME=${MODEL_NAME:-}
+      - LLAMA_GPU_LAYERS=${LLAMA_GPU_LAYERS:-99}
+      - LLAMA_CTX_SIZE=${LLAMA_CTX_SIZE:-8192}
+      - LLAMA_PORT=${LLAMA_PORT:-8080}
+      - GPU_BACKEND=metal

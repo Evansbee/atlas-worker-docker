@@ -50,15 +50,27 @@ fi
 
 if [ -n "$MODEL_FILE" ] && [ -f "$MODEL_FILE" ]; then
     echo "Starting llama-server with model: $MODEL_FILE"
+    echo "GPU Backend: ${GPU_BACKEND:-cuda}"
     
-    # Start llama-server with GPU offload
-    llama-server \
-        --model "$MODEL_FILE" \
-        --host 0.0.0.0 \
-        --port "${LLAMA_PORT:-8080}" \
-        --ctx-size "${LLAMA_CTX_SIZE:-8192}" \
-        --n-gpu-layers "${LLAMA_GPU_LAYERS:-99}" \
-        --verbose &
+    # Start llama-server with appropriate GPU offload
+    if [ "${GPU_BACKEND:-cuda}" = "cpu" ]; then
+        echo "Using CPU-only inference (no GPU offload)"
+        llama-server \
+            --model "$MODEL_FILE" \
+            --host 0.0.0.0 \
+            --port "${LLAMA_PORT:-8080}" \
+            --ctx-size "${LLAMA_CTX_SIZE:-8192}" \
+            --verbose &
+    else
+        echo "Using GPU acceleration (${GPU_BACKEND:-cuda})"
+        llama-server \
+            --model "$MODEL_FILE" \
+            --host 0.0.0.0 \
+            --port "${LLAMA_PORT:-8080}" \
+            --ctx-size "${LLAMA_CTX_SIZE:-8192}" \
+            --n-gpu-layers "${LLAMA_GPU_LAYERS:-99}" \
+            --verbose &
+    fi
     
     LLAMA_PID=$!
     echo "llama-server started with PID $LLAMA_PID"

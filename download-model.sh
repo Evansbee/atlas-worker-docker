@@ -18,7 +18,14 @@ echo "Downloading model: $FILENAME"
 echo "From: $URL"
 
 # Create a temporary container to download the model
-docker compose run --rm -v atlas-worker-docker_models:/models atlas-worker bash -c "
+# Auto-detect compose setup (Metal vs CUDA)
+if [ -f "docker-compose.metal.yml" ] && [[ "$OSTYPE" == "darwin"* ]]; then
+    COMPOSE_CMD="docker compose -f docker-compose.yml -f docker-compose.metal.yml"
+else
+    COMPOSE_CMD="docker compose"
+fi
+
+$COMPOSE_CMD run --rm -v models:/models atlas-worker bash -c "
     cd /models
     echo 'Downloading $FILENAME...'
     wget -O '$FILENAME.tmp' '$URL'
