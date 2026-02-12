@@ -11,6 +11,7 @@ services:
     volumes:
       - atlas-data:/data
       - models:/models
+      - openclaw-config:/root/.openclaw
     restart: unless-stopped
     deploy:
       resources:
@@ -47,3 +48,4 @@ services:
 volumes:
   atlas-data:
   models:
+  openclaw-config:
