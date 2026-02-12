@@ -13,7 +13,8 @@ export OPENCLAW_GATEWAY_TOKEN="${ATLAS_GATEWAY_TOKEN:-}"
 
 # Set exec approvals to allow all commands
 mkdir -p /data/config
-cat > /data/config/exec-approvals.json << 'APPROVALS'
+mkdir -p /root/.openclaw
+cat > /root/.openclaw/exec-approvals.json << 'APPROVALS'
 {
   "version": 1,
   "defaults": {
