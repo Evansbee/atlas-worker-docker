@@ -1,17 +1,23 @@
 services:
   atlas-worker:
     image: ghcr.io/evansbee/atlas-worker:latest
-    build: .
-    runtime: nvidia
+    container_name: atlas-worker
+    network_mode: host
     environment:
-      - NVIDIA_VISIBLE_DEVICES=all
       - ATLAS_GATEWAY_HOST=atlas
       - ATLAS_GATEWAY_PORT=18789
-      - WORKER_NAME=GPU Worker
+      - WORKER_NAME=${WORKER_NAME:-GPU Worker}
     volumes:
-      - atlas-worker-data:/data
+      - atlas-data:/data
     restart: unless-stopped
-    network_mode: host
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 300 atlas-worker
+    restart: unless-stopped
 
 volumes:
-  atlas-worker-data:
+  atlas-data:
