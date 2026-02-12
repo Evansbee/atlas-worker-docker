@@ -17,5 +17,4 @@ export OPENCLAW_GATEWAY_TOKEN="${ATLAS_GATEWAY_TOKEN:-}"
 exec openclaw node run \
     --host "${ATLAS_GATEWAY_HOST}" \
     --port "${ATLAS_GATEWAY_PORT}" \
-    --display-name "${WORKER_NAME}" \
-    --token "${ATLAS_GATEWAY_TOKEN}"
+    --display-name "${WORKER_NAME}"
