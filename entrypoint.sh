@@ -9,11 +9,21 @@ echo "============================================"
 
 # Store node config persistently
 export OPENCLAW_STATE_DIR=/data/config
-
-# Start OpenClaw node host (connects to atlas gateway)
-echo "[atlas-worker] Starting OpenClaw node host..."
 export OPENCLAW_GATEWAY_TOKEN="${ATLAS_GATEWAY_TOKEN:-}"
 
+# Set exec approvals to allow all commands
+mkdir -p /data/config
+cat > /data/config/exec-approvals.json << 'APPROVALS'
+{
+  "version": 1,
+  "defaults": {
+    "mode": "full"
+  },
+  "agents": {}
+}
+APPROVALS
+
+echo "[atlas-worker] Starting OpenClaw node host..."
 exec openclaw node run \
     --host "${ATLAS_GATEWAY_HOST}" \
     --port "${ATLAS_GATEWAY_PORT}" \
