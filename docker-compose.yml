@@ -10,6 +10,23 @@ services:
       - ATLAS_GATEWAY_TOKEN=${ATLAS_GATEWAY_TOKEN}
     volumes:
       - atlas-data:/data
+      - models:/models
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  llama-server:
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda
+    container_name: llama-server
+    network_mode: host
+    volumes:
+      - models:/models
+    entrypoint: ["/bin/sh", "-c", "echo 'Waiting for model...' && while [ ! -f /models/current.gguf ]; do sleep 10; done && /llama-server --host 0.0.0.0 --port 8080 --model /models/current.gguf --n-gpu-layers 99 --ctx-size 8192"]
     restart: unless-stopped
     deploy:
       resources:
@@ -24,8 +41,9 @@ services:
     container_name: watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 300 atlas-worker
+    command: --interval 300 atlas-worker llama-server
     restart: unless-stopped
 
 volumes:
   atlas-data:
+  models:
