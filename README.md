@@ -1,117 +1,141 @@
-# Atlas GPU Worker
+# Atlas Worker Docker
 
-Run ONE command on any GPU-equipped PC to join Atlas's inference network.
+A lean, simple Docker setup for running OpenClaw node host with llama.cpp server in a single container.
 
 ## Quick Start
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/evansbee/atlas-worker-docker/main/setup-worker.sh | bash
-```
-
-Or manually:
-
-```bash
-git clone https://github.com/evansbee/atlas-worker-docker.git
+git clone <this-repo>
 cd atlas-worker-docker
+docker compose build
 docker compose up -d
 ```
 
 ## Prerequisites
 
-1. **Docker** (Docker Desktop on Windows/Mac, or Docker Engine on Linux)
-2. **NVIDIA GPU** with recent drivers
-3. **NVIDIA Container Toolkit**
-4. **Tailscale** running on the host (so the container can reach `atlas`)
+- **Docker** with compose plugin
+- **NVIDIA drivers** (for GPU support)
+- **NVIDIA Container Toolkit** ([installation guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html))
+- **Tailscale** running on host (container uses `network_mode: host`)
 
-## NVIDIA Container Toolkit Installation
+## Architecture
 
-### Linux
+- **Single container** with OpenClaw node host + llama.cpp server
+- **Persistent volumes** for models and OpenClaw config
+- **Host networking** to use host's Tailscale connection
+- **GPU acceleration** via CUDA
 
-```bash
-# Add NVIDIA repo
-curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey \
-  | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+## Environment Variables
 
-curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list \
-  | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' \
-  | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
-
-# Install
-sudo apt-get update
-sudo apt-get install -y nvidia-container-toolkit
-
-# Configure Docker runtime
-sudo nvidia-ctk runtime configure --runtime=docker
-sudo systemctl restart docker
-```
-
-### Windows (Docker Desktop)
-
-1. Install latest [NVIDIA GPU drivers](https://www.nvidia.com/drivers)
-2. Install [Docker Desktop](https://docs.docker.com/desktop/install/windows-install/) with WSL2 backend
-3. GPU support is automatic with WSL2 — no extra toolkit needed
-4. Verify: `docker run --rm --gpus all nvidia/cuda:12.4.0-base-ubuntu22.04 nvidia-smi`
-
-## Configuration
-
-| Environment Variable | Default | Description |
-|---------------------|---------|-------------|
-| `ATLAS_GATEWAY_HOST` | `atlas` | Hostname of the Atlas gateway |
-| `ATLAS_GATEWAY_PORT` | `18789` | Gateway port |
-| `WORKER_NAME` | `GPU Worker` | Display name in Atlas |
-| `LLAMA_PORT` | `8080` | Internal llama.cpp server port |
-| `LLAMA_GPU_LAYERS` | `99` | GPU layers (99 = offload all) |
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ATLAS_GATEWAY_HOST` | `atlas` | OpenClaw gateway hostname |
+| `ATLAS_GATEWAY_PORT` | `18789` | OpenClaw gateway port |
+| `WORKER_NAME` | `atlas-worker-<hostname>` | Worker identification name |
+| `ATLAS_GATEWAY_TOKEN` | _(empty)_ | Authentication token for gateway |
+| `MODEL_NAME` | _(empty)_ | Specific model filename to use |
+| `LLAMA_GPU_LAYERS` | `99` | GPU layers for offloading |
 | `LLAMA_CTX_SIZE` | `8192` | Context window size |
-| `LLAMA_THREADS` | `4` | CPU threads for llama.cpp |
-| `MODEL_NAME` | (auto) | Specific .gguf filename to load |
+| `LLAMA_PORT` | `8080` | llama-server port |
 
-## Model Management
-
-Models are stored in the Docker volume at `/data/models/`. Atlas can trigger downloads via the node's `run` command:
+Create a `.env` file to customize:
 
 ```bash
-# Manual model download into the volume
-docker compose exec atlas-worker \
-  wget -P /data/models/ "https://huggingface.co/Qwen/Qwen3-30B-A3B-GGUF/resolve/main/Qwen3-30B-A3B-Q4_K_M.gguf"
+ATLAS_GATEWAY_HOST=your-gateway-host
+ATLAS_GATEWAY_TOKEN=your-token
+WORKER_NAME=my-worker
+MODEL_NAME=Qwen3-30B-A3B-Q4_K_M.gguf
 ```
 
-The container auto-detects `.gguf` files and starts llama-server with the first one found (or the one specified by `MODEL_NAME`).
+## Downloading Models
 
-## Networking
-
-**Recommended:** Host network mode + Tailscale on the host.
-
-The container runs with `network_mode: host`, meaning it shares the host's network stack. If the host has Tailscale connected to your tailnet, the container can reach `atlas` directly. No Tailscale inside the container needed.
-
-## Commands
+Use the provided script to download models into the persistent volume:
 
 ```bash
-docker compose up -d          # Start
-docker compose down            # Stop
-docker compose logs -f         # View logs
-docker compose pull && docker compose up -d  # Update
-docker compose exec atlas-worker nvidia-smi  # Check GPU
+./download-model.sh https://huggingface.co/Qwen/Qwen3-30B-A3B-GGUF/resolve/main/Qwen3-30B-A3B-Q4_K_M.gguf
+```
+
+Models are stored in the `models` Docker volume and persist across container rebuilds.
+
+## Updating
+
+To update the worker (models persist):
+
+```bash
+git pull
+docker compose build --no-cache
+docker compose up -d
 ```
 
 ## Troubleshooting
 
-**"Cannot reach atlas gateway"**
-- Ensure Tailscale is running on the host: `tailscale status`
-- Verify: `ping atlas` from the host
-- Check gateway is running on atlas
+### Container Status
+```bash
+docker compose logs atlas-worker     # View logs
+docker compose ps                    # Check status
+```
 
-**"GPU not accessible"**
-- Run `nvidia-smi` on the host — drivers must work first
-- Check NVIDIA Container Toolkit: `docker run --rm --gpus all nvidia/cuda:12.4.0-base-ubuntu22.04 nvidia-smi`
+### GPU Issues
+```bash
+nvidia-smi                          # Check GPU availability
+docker run --rm --gpus all nvidia/cuda:12.4.0-runtime-ubuntu22.04 nvidia-smi
+```
 
-**"llama-server not started"**
-- No model in `/data/models/`. Download one (see Model Management above).
-- Check logs: `docker compose logs -f`
+### Network Connectivity
+```bash
+# From host, check Tailscale
+tailscale status
 
-**"OpenClaw node not connecting"**
-- Gateway may not be running. Check atlas.
-- Worker may need pairing approval. Ask Atlas.
+# Test gateway connection
+telnet <gateway-host> 18789
+```
 
-**Container keeps restarting**
-- Check logs: `docker compose logs --tail 50`
-- GPU memory issue? Try reducing `LLAMA_CTX_SIZE` or use a smaller model.
+### Model Issues
+```bash
+# List downloaded models
+docker compose exec atlas-worker ls -la /models/
+
+# Download a test model
+./download-model.sh https://huggingface.co/microsoft/DialoGPT-small/resolve/main/pytorch_model.bin
+```
+
+### OpenClaw Node Issues
+```bash
+# Check OpenClaw logs
+docker compose exec atlas-worker openclaw node status
+
+# Restart just the worker
+docker compose restart atlas-worker
+```
+
+## Volumes
+
+- `models:/models` - Persistent model storage
+- `openclaw-config:/root/.openclaw` - OpenClaw configuration and state
+
+## Ports
+
+- `8080` - llama-server (configurable via `LLAMA_PORT`)
+- OpenClaw uses dynamic ports through the gateway connection
+
+## Development
+
+### Building Locally
+```bash
+docker compose build
+```
+
+### Running in Development Mode
+```bash
+# With custom environment
+WORKER_NAME=dev-worker docker compose up
+```
+
+### Accessing the Container
+```bash
+docker compose exec atlas-worker bash
+```
+
+## License
+
+This project follows the same license as OpenClaw and llama.cpp.

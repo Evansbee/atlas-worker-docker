@@ -1,3 +1,10 @@
 #!/bin/bash
-# Simple health check — verify node process is running
-pgrep -f "openclaw node" > /dev/null 2>&1 || exit 1
+
+# Check if OpenClaw node process is running
+if pgrep -f "openclaw node host" > /dev/null; then
+    echo "OpenClaw node host is running"
+    exit 0
+else
+    echo "OpenClaw node host is not running"
+    exit 1
+fi
